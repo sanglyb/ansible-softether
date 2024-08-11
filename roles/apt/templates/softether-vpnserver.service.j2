@@ -1,0 +1,12 @@
+[Unit]
+Description=SoftEther VPN server
+After=network-online.target
+After=dbus.service
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/vpnserver start
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

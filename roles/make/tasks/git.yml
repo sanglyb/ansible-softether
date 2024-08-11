@@ -1,0 +1,8 @@
+- name: clone softether repository
+#   become: true
+  git:
+    repo: "{{ gitrepo }}"
+    dest: /root/softEtherDist/
+    update: yes
+    clone: yes
+    depth: 1

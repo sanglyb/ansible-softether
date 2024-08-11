@@ -1,0 +1,10 @@
+- name: install fail2ban
+  apt:
+   pkg:
+      - fail2ban
+
+- name: allow dns recursive requests if not allowed from vpn clients
+  replace:
+    path: /etc/fail2ban/jail.conf
+    regexp: '^(port.*= ssh)$'
+    replace: '\1,50022'

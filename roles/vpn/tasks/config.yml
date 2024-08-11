@@ -1,0 +1,55 @@
+- name: configure softehter vpn
+  command: "vpncmd /SERVER 127.0.0.1 /HUB:default /CMD {{ item }}"
+  loop:
+    - SecureNatEnable
+    - NatEnable
+    - DHCPEnable
+
+- name: configure server parameters
+  command: "vpncmd /SERVER 127.0.0.1 /CMD {{ item }}"
+  loop:
+    - IPsecEnable /L2TP:yes /L2TPRAW:no /ETHERIP:no /PSK:{{ vpn_shared_pass }} /DEFAULTHUB:default
+    - ServerCertSet /LOADCERT:/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem /LOADKEY:/etc/letsencrypt/live/{{ domain_name }}/privkey.pem
+
+- name: configure users
+  command: "vpncmd /SERVER 127.0.0.1 /HUB:default /CMD {{ item }}"
+  loop:
+    - UserCreate {{ vpn_user }} /GROUP:none /REALNAME:none /NOTE:none
+    - UserPasswordSet {{ vpn_user }} /PASSWORD:{{ vpn_pass }}
+    - UserCreate {{ vpn_user1 }} /GROUP:none /REALNAME:none /NOTE:none
+    - UserPasswordSet {{ vpn_user1 }} /PASSWORD:{{ vpn_pass1 }}
+  ignore_errors: true
+
+- name: check configs path (builded)
+  stat:
+    path: "/usr/local/libexec/softether/vpnserver"
+  register: builded
+
+- name: limit access from vpncmd
+  template:
+    src: adminip.txt.j2
+    dest: /usr/local/libexec/softether/vpnserver/adminip.txt
+    mode: 644
+    owner: root
+    group: root
+  when: builded.stat.exists == True
+
+- name: check configs path (from repo)
+  stat:
+    path: "/var/lib/softether"
+  register: fromrepo
+
+- name: limit access from vpncmd
+  template:
+    src: adminip.txt.j2
+    dest: /var/lib/softether/adminip.txt
+    mode: 644
+    owner: root
+    group: root
+  when: fromrepo.stat.exists == True
+
+- name: restart softether service
+  service:
+    name: softether-vpnserver
+    state: restarted
+    enabled: yes

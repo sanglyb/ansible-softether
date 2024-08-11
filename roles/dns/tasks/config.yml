@@ -1,0 +1,35 @@
+- name: check if recursive requests are allowed from vpn clients
+  lineinfile:
+    state: absent
+    path: /etc/bind/named.conf.options
+    regexp: ".*allow-recursion { 127.0.0.1; 192.168.30.0/24; };"
+  check_mode: true
+  changed_when: false
+  register: recurse
+
+- name: allow dns recursive requests if not allowed from vpn clients
+  lineinfile:
+    state: present
+    path: /etc/bind/named.conf.options
+    line: "\n\tallow-recursion { 127.0.0.1; 192.168.30.0/24; };"
+    insertafter: ".*listen-on-v6 { any; };"
+  when: recurse.found == 0
+
+- name: apply named config (ipv4 only)
+  template:
+    src: named.j2
+    dest: /etc/default/named
+    mode: 644
+    owner: root
+    group: root
+
+- name: rebuild managed keys database for DNSSEC
+  shell: |
+    rndc managed-keys destroy
+    rndc reconfig
+
+- name: restart bind9 service
+  service:
+    name: named
+    enabled: yes
+    state: restarted

@@ -1,0 +1,4 @@
+- name: install ufw firewall
+  apt:
+    pkg:
+      - ufw

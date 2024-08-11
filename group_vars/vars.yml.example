@@ -1,0 +1,11 @@
+#your domain name for letsencrypt certificate. 
+#DNS recrod is required.
+domain_name: "vpn.your.domain"
+admin_email: "admin@your.domain"
+#used for l2tp over ipsec
+vpn_shared_pass: "verysecret"
+#add users
+vpn_user: "user1"
+vpn_pass: "secretPass01"
+vpn_user1: "user2"
+vpn_pass1: "secretPass02"

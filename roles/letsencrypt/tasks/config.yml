@@ -1,0 +1,20 @@
+- name: check if certificate already obtained
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+  register: cert
+
+- name: obtain certificate
+  shell: "certbot certonly --standalone --preferred-challenges http --agree-tos --email {{ admin_email }} -d {{ domain_name }}  --keep-until-expiring"
+  delay: 60
+  retries: 5
+  register: result
+  until: result.rc == 0
+  when: cert.stat.exists == False
+
+- name: add cronjob for letsencrypt
+  cron:
+    name: letsencrypt cert update
+    day: "*/14"
+    hour: "1"
+    minute: "30"
+    job: "certbot renew --post-hook \"systemctl reload softether-vpnserver.service\""

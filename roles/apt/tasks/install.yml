@@ -1,0 +1,96 @@
+- name: check if softether presents in repo
+  shell: |
+    result=$(apt-cache search softether)
+    if [ -z "$result" ]; then
+      echo "empty"
+      exit 1
+    fi
+    exit 0
+  register: aptPresent
+  ignore_errors: true
+
+- name: install softethervpn
+  apt:
+   pkg:
+      - softether-common
+      - softether-vpncmd
+      - softether-vpnserver
+      - softether-vpnbridge
+      - softether-vpnclient
+  when: aptPresent.rc == 0
+
+- name: install dependencies for build
+  apt:
+    pkg:
+      - wget
+      - make
+      - gcc
+      - binutils
+      - git
+      - cmake
+      - gcc
+      - g++
+      - make
+      - pkgconf
+      - libncurses5-dev
+      - libssl-dev
+      - libsodium-dev
+      - libreadline-dev
+      - zlib1g-dev
+  when: aptPresent.rc == 1
+
+- name: clone softether repository
+#   become: true
+  git:
+    repo: https://github.com/SoftEtherVPN/SoftEtherVPN.git
+    dest: /root/softEtherDist/
+    update: yes
+    clone: yes
+    depth: 1
+  when: aptPresent.rc == 1
+
+- name: check if softether's current version already compiled
+  shell: |
+    cd /root/softEtherDist
+    version=$(vpncmd /SERVER 127.0.0.1 /HUB default /CMD ServerInfoGet | grep $(python3 version.py) 2> /dev/null)
+    if [ -z "$version" ]; then
+      exit 1
+    fi
+    exit 0
+  register: appAlreadyCompiled
+  ignore_errors: true
+  when: aptPresent.rc == 1
+
+- name: compile SoftEtherVPN
+  shell: |
+    cd /root/softEtherDist/
+    git submodule init && git submodule update
+    ./configure
+    make -C build
+    make -C build install
+  register: buildResult
+  when: (aptPresent.rc == 1) and (appAlreadyCompiled.rc == 1)
+
+- name: print buildResult
+  debug:
+    msg: "{{ buildResult.stderr }}"
+  when: (aptPresent.rc == 1) and (appAlreadyCompiled.rc == 1) and (buildResult.rc != 0)
+
+#- name: copy service config
+#  tags: service
+#  template:
+#    src: softether-vpnserver.service.j2
+#    dest: /etc/systemd/system/softether-vpnserver.service
+#  when: (aptPresent.rc == 1) and (appAlreadyCompiled.rc == 1) and (buildResult.rc == 0)
+
+- name: reload systemctl daemon
+  shell: |
+    systemctl daemon-reload
+
+- name: enable and start softEtherVPN service
+  tags: service
+  service:
+    name: softether-vpnserver
+    enabled: yes
+    state: restarted
+  when: (aptPresent.rc == 1) and (appAlreadyCompiled.rc == 1) and (buildResult.rc == 0)

@@ -1,0 +1,10 @@
+- hosts: all
+  vars_files:
+    - group_vars/vars.yml
+  roles:
+    - apt
+    - dns
+    - letsencrypt
+    - vpn
+    - firewall
+    - fail2ban

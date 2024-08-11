@@ -1,0 +1,34 @@
+- name: set default deny policy (incoming)
+  ufw:
+    direction: incoming
+    policy: deny
+- name: set default allow policy (outgoing)
+  ufw:
+    direction: outgoing
+    policy: allow
+- name: allow vpn ports (l2tp, ipsec)
+  ufw:
+    rule: allow
+    proto: udp
+    port: "{{ item }}"
+  loop:
+    - "500"
+    - "4500"
+- name: allow http, https and ssh ports
+  ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item }}"
+  loop:
+    - "443"
+    - "80"
+    - "22"
+    - "50022"
+- name: allow all requests from vpn clients
+  ufw:
+    rule: allow
+    src: "192.168.30.0/24"
+    direction: in
+- name: enable ufw
+  ufw:
+    state: enabled

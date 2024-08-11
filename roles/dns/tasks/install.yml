@@ -1,0 +1,4 @@
+- name: install bind9
+  apt:
+    pkg:
+      - bind9
